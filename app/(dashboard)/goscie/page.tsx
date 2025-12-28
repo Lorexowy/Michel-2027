@@ -205,8 +205,7 @@ export default function GosciePage() {
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-500 dark:text-slate-400">Wszyscy goście</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalGuests}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Razem osób: {totalGuestCount}</p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalGuestCount}</p>
             </div>
             <Users className="w-8 h-8 text-slate-400 dark:text-slate-600" />
           </div>
@@ -227,8 +226,7 @@ export default function GosciePage() {
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
             <div>
               <p className="text-sm text-slate-500 dark:text-slate-400">Potwierdzeni</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{confirmedGuests}</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Razem osób: {confirmedGuestCount}</p>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">{confirmedGuestCount}</p>
             </div>
             <UserCheck className="w-8 h-8 text-green-400 dark:text-green-600" />
           </div>

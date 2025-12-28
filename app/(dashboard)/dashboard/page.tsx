@@ -407,12 +407,9 @@ export default function DashboardPage() {
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Goście</span>
           </div>
           
-          <h3 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-            {stats.guests.total}
+          <h3 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4">
+            {stats.guests.totalCount}
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-            Razem osób: {stats.guests.totalCount}
-          </p>
           
           {guestsChartData.length > 0 ? (
             <div className="h-[180px] mb-4">
