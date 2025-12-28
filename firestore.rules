@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ⚠️ UWAGA: Te reguły pozwalają na pełny dostęp do danych!
+    // Używaj TYLKO do rozwoju lokalnego.
+    // Dla produkcji zobacz sekcję "Reguły bezpieczeństwa Firestore" w README.md
+    
+    match /weddingProjects/{projectId} {
+      allow read, write: if true;
+      
+      match /{collection}/{document=**} {
+        allow read, write: if true;
+      }
+    }
+  }
+}
+
