@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -39,6 +40,7 @@ const guestSchema = z.object({
   phone: z.string().optional().nullable(),
   side: z.enum(["bride", "groom"]),
   rsvp: z.enum(["not_sent", "sent", "yes", "no"]),
+  hasCompanion: z.boolean().optional(),
   dietaryRestrictions: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
@@ -67,6 +69,7 @@ export default function GuestDialog({
       phone: null,
       side: "bride",
       rsvp: "not_sent",
+      hasCompanion: false,
       dietaryRestrictions: null,
       notes: null,
     },
@@ -81,6 +84,7 @@ export default function GuestDialog({
         phone: guest.phone || null,
         side: guest.side,
         rsvp: guest.rsvp,
+        hasCompanion: guest.hasCompanion || false,
         dietaryRestrictions: guest.dietaryRestrictions || null,
         notes: guest.notes || null,
       });
@@ -92,6 +96,7 @@ export default function GuestDialog({
         phone: null,
         side: "bride",
         rsvp: "not_sent",
+        hasCompanion: false,
         dietaryRestrictions: null,
         notes: null,
       });
@@ -116,6 +121,9 @@ export default function GuestDialog({
       }
       if (values.phone && values.phone.trim()) {
         guestData.phone = values.phone;
+      }
+      if (values.hasCompanion) {
+        guestData.hasCompanion = true;
       }
       if (values.dietaryRestrictions && values.dietaryRestrictions.trim()) {
         guestData.dietaryRestrictions = values.dietaryRestrictions;
@@ -273,6 +281,29 @@ export default function GuestDialog({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="hasCompanion"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border border-slate-200 dark:border-slate-700 p-4">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>
+                      Osoba towarzysząca
+                    </FormLabel>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Zaznacz, jeśli gość przyjdzie z osobą towarzyszącą (będzie liczony jako 2 osoby)
+                    </p>
+                  </div>
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}

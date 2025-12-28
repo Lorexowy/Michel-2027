@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Mail, Phone, MoreVertical, User, Heart } from "lucide-react";
+import { Mail, Phone, MoreVertical, User, Heart, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GuestListProps {
@@ -80,9 +80,23 @@ export default function GuestList({
                 className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
               >
                 <td className="px-4 py-3">
-                  <div className="font-semibold text-slate-900 dark:text-slate-100">
-                    {guest.firstName} {guest.lastName || ""}
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">
+                      {guest.firstName} {guest.lastName || ""}
+                    </span>
+                    {guest.hasCompanion && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs font-medium bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800 flex items-center gap-1"
+                      >
+                        <UserPlus className="h-3 w-3" />
+                        +1
+                      </Badge>
+                    )}
                   </div>
+                </td>
+                <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 hidden md:table-cell">
+                  {guest.hasCompanion ? "2 osoby" : "1 osoba"}
                 </td>
                 <td className="px-4 py-3 text-sm text-slate-600 dark:text-slate-400 hidden sm:table-cell">
                   <div className="space-y-1">

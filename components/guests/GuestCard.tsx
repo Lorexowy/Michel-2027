@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Mail, Phone, MoreVertical, User, Heart } from "lucide-react";
+import { Mail, Phone, MoreVertical, User, Heart, UserPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface GuestCardProps {
@@ -51,9 +51,20 @@ export default function GuestCard({
     <div className="group bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-lg transition-all duration-200 hover:border-slate-300 dark:hover:border-slate-600">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-base mb-1">
-            {guest.firstName} {guest.lastName || ""}
-          </h4>
+          <div className="flex items-center gap-2 mb-1">
+            <h4 className="font-semibold text-slate-900 dark:text-slate-100 text-base">
+              {guest.firstName} {guest.lastName || ""}
+            </h4>
+            {guest.hasCompanion && (
+              <Badge
+                variant="outline"
+                className="text-xs font-medium bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800 flex items-center gap-1"
+              >
+                <UserPlus className="h-3 w-3" />
+                +1
+              </Badge>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <Badge
               variant="outline"

@@ -40,6 +40,7 @@ export interface Guest {
   phone?: string;
   side: GuestSide;
   rsvp: GuestRSVP;
+  hasCompanion?: boolean;
   dietaryRestrictions?: string;
   notes?: string;
   createdAt: Timestamp;

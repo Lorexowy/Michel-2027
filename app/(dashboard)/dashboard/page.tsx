@@ -111,7 +111,11 @@ export default function DashboardPage() {
 
         const guestsStats = {
           total: guests.length,
+          totalCount: guests.reduce((sum, g) => sum + (g.hasCompanion ? 2 : 1), 0),
           confirmed: guests.filter(g => g.rsvp === "yes").length,
+          confirmedCount: guests
+            .filter(g => g.rsvp === "yes")
+            .reduce((sum, g) => sum + (g.hasCompanion ? 2 : 1), 0),
           pending: guests.filter(g => g.rsvp === "sent").length,
           notSent: guests.filter(g => g.rsvp === "not_sent").length,
           declined: guests.filter(g => g.rsvp === "no").length,
@@ -403,9 +407,12 @@ export default function DashboardPage() {
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Goście</span>
           </div>
           
-          <h3 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4">
+          <h3 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">
             {stats.guests.total}
           </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+            Razem osób: {stats.guests.totalCount}
+          </p>
           
           {guestsChartData.length > 0 ? (
             <div className="h-[180px] mb-4">
