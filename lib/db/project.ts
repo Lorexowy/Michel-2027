@@ -80,6 +80,11 @@ export async function ensureMainProject(): Promise<WeddingProject & { id: string
  * Gets the main wedding project
  */
 export async function getMainProject(): Promise<(WeddingProject & { id: string }) | null> {
+  if (!db) {
+    console.error("getMainProject: Firestore DB is not initialized.");
+    throw new Error("Firestore DB is not available.");
+  }
+  
   const projectRef = doc(db, PROJECT_COLLECTION, PROJECT_ID);
   const projectSnap = await getDoc(projectRef);
 
@@ -99,6 +104,11 @@ export async function getMainProject(): Promise<(WeddingProject & { id: string }
 export async function updateMainProject(
   updates: Partial<Omit<WeddingProject, "createdAt" | "updatedAt">>
 ): Promise<void> {
+  if (!db) {
+    console.error("updateMainProject: Firestore DB is not initialized.");
+    throw new Error("Firestore DB is not available.");
+  }
+  
   const projectRef = doc(db, PROJECT_COLLECTION, PROJECT_ID);
   await setDoc(
     projectRef,
