@@ -129,19 +129,16 @@ export default function Topbar() {
       <AlertDialog 
         open={showWarningDialog} 
         onOpenChange={(open) => {
-          // Nie pozwól zamknąć dialogu przez kliknięcie poza nim
+          // Nie pozwól zamknąć dialogu przez kliknięcie poza nim lub ESC
           // Dialog może być zamknięty tylko przez wybór opcji
           if (!open && timeRemaining > 0) {
-            // Jeśli użytkownik próbuje zamknąć dialog, a czas jeszcze nie minął,
+            // Jeśli użytkownik próbuje zamknąć dialog (ESC lub kliknięcie poza nim),
             // traktujemy to jako wybór "Wyloguj"
             handleAutoLogout();
           }
         }}
       >
-        <AlertDialogContent 
-          onEscapeKeyDown={(e) => e.preventDefault()}
-          onPointerDownOutside={(e) => e.preventDefault()}
-        >
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Czy chcesz dalej pracować?</AlertDialogTitle>
             <AlertDialogDescription>
