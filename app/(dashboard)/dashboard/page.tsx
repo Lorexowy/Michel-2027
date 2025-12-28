@@ -45,7 +45,7 @@ export default function DashboardPage() {
   // Statistics
   const [stats, setStats] = useState({
     tasks: { total: 0, todo: 0, doing: 0, done: 0 },
-    guests: { total: 0, confirmed: 0, pending: 0, notSent: 0, declined: 0 },
+    guests: { total: 0, totalCount: 0, confirmed: 0, confirmedCount: 0, pending: 0, notSent: 0, declined: 0 },
     expenses: { total: 0, planned: 0, deposit: 0, paid: 0 },
     vendors: { total: 0, booked: 0, considering: 0, rejected: 0 },
     events: { total: 0, upcoming: 0, past: 0 },
