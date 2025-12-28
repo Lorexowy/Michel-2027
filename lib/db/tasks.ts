@@ -52,6 +52,11 @@ export async function listTasks(): Promise<WithId<Task>[]> {
  * Gets a single task by ID
  */
 export async function getTask(id: string): Promise<WithId<Task> | null> {
+  if (!db) {
+    console.error("getTask: Firestore DB is not initialized.");
+    throw new Error("Firestore DB is not available.");
+  }
+  
   const taskRef = doc(db, getCollectionPath(), id);
   const taskSnap = await getDoc(taskRef);
 
@@ -96,6 +101,11 @@ export async function updateTask(
   id: string,
   updates: Partial<Omit<Task, "id" | "createdAt" | "updatedAt">>
 ): Promise<void> {
+  if (!db) {
+    console.error("updateTask: Firestore DB is not initialized.");
+    throw new Error("Firestore DB is not available.");
+  }
+  
   const taskRef = doc(db, getCollectionPath(), id);
   await updateDoc(taskRef, {
     ...updates,
@@ -107,6 +117,11 @@ export async function updateTask(
  * Deletes a task
  */
 export async function deleteTask(id: string): Promise<void> {
+  if (!db) {
+    console.error("deleteTask: Firestore DB is not initialized.");
+    throw new Error("Firestore DB is not available.");
+  }
+  
   const taskRef = doc(db, getCollectionPath(), id);
   await deleteDoc(taskRef);
 }
