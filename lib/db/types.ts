@@ -47,12 +47,21 @@ export interface Guest {
   updatedAt: Timestamp;
 }
 
+export interface BudgetScenario {
+  name: string;
+  description?: string;
+  isActive: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
 export interface Expense {
   title: string;
   description?: string;
   category: string;
   amount: number;
   status: ExpenseStatus;
+  scenarioId: string;
   vendorId?: string;
   dueDate?: Timestamp | null;
   paidAt?: Timestamp | null;

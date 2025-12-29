@@ -39,6 +39,7 @@ const expenseSchema = z.object({
   category: z.string().min(1, "Kategoria jest wymagana"),
   amount: z.number().min(0, "Kwota musi być większa lub równa 0"),
   status: z.enum(["planned", "deposit", "paid"]),
+  scenarioId: z.string().min(1, "Scenariusz jest wymagany"),
   dueDate: z.string().optional().nullable(),
 });
 
@@ -48,6 +49,8 @@ interface ExpenseDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   expense?: WithId<Expense> | null;
+  scenarios: Array<{ id: string; name: string }>;
+  activeScenarioId: string;
   onSubmit: (data: Omit<Expense, "createdAt" | "updatedAt">) => Promise<void>;
 }
 
@@ -55,6 +58,8 @@ export default function ExpenseDialog({
   open,
   onOpenChange,
   expense,
+  scenarios,
+  activeScenarioId,
   onSubmit,
 }: ExpenseDialogProps) {
   const form = useForm<ExpenseFormValues>({
@@ -65,6 +70,7 @@ export default function ExpenseDialog({
       category: "",
       amount: 0,
       status: "planned",
+      scenarioId: activeScenarioId,
       dueDate: null,
     },
   });
@@ -77,6 +83,7 @@ export default function ExpenseDialog({
         category: expense.category,
         amount: expense.amount,
         status: expense.status,
+        scenarioId: expense.scenarioId,
         dueDate: expense.dueDate
           ? formatDateForInput(expense.dueDate.toDate())
           : null,
@@ -88,10 +95,11 @@ export default function ExpenseDialog({
         category: "",
         amount: 0,
         status: "planned",
+        scenarioId: activeScenarioId,
         dueDate: null,
       });
     }
-  }, [expense, open, form]);
+  }, [expense, open, activeScenarioId, form]);
 
   const formatDateForInput = (date: Date): string => {
     return date.toISOString().split("T")[0];
@@ -104,6 +112,7 @@ export default function ExpenseDialog({
         category: values.category,
         amount: values.amount,
         status: values.status,
+        scenarioId: values.scenarioId,
       };
 
       if (values.description && values.description.trim()) {
@@ -188,6 +197,34 @@ export default function ExpenseDialog({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="scenarioId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Scenariusz *</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Wybierz scenariusz" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {scenarios.map((scenario) => (
+                          <SelectItem key={scenario.id} value={scenario.id}>
+                            {scenario.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="status"

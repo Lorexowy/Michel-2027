@@ -1,13 +1,26 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { WithId, Expense, ExpenseStatus } from "@/lib/db/types";
+import { WithId, Expense, ExpenseStatus, BudgetScenario } from "@/lib/db/types";
 import { listExpenses, createExpense, updateExpense, deleteExpense } from "@/lib/db/expenses";
+import {
+  listScenarios,
+  createScenario,
+  updateScenario,
+  deleteScenario,
+  getActiveScenario,
+  getScenario,
+  cloneScenario,
+} from "@/lib/db/scenarios";
 import { Button } from "@/components/ui/button";
 import ExpenseCard from "@/components/expenses/ExpenseCard";
 import ExpenseList from "@/components/expenses/ExpenseList";
 import ExpenseDialog from "@/components/expenses/ExpenseDialog";
 import ExpenseFilters from "@/components/expenses/ExpenseFilters";
+import ScenarioSelector from "@/components/scenarios/ScenarioSelector";
+import ScenarioDialog from "@/components/scenarios/ScenarioDialog";
+import ScenarioComparison from "@/components/scenarios/ScenarioComparison";
+import ScenarioList from "@/components/scenarios/ScenarioList";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,15 +31,25 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Calculator, Wallet, CheckCircle2, Clock, Grid3x3, List } from "lucide-react";
+import { Plus, Calculator, Wallet, CheckCircle2, Clock, Grid3x3, List, ArrowLeft } from "lucide-react";
+import { ensureMainProject } from "@/lib/db/project";
 
 export default function KosztorysPage() {
   const [expenses, setExpenses] = useState<WithId<Expense>[]>([]);
+  const [scenarios, setScenarios] = useState<WithId<BudgetScenario>[]>([]);
+  const [activeScenario, setActiveScenario] = useState<WithId<BudgetScenario> | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [scenarioDialogOpen, setScenarioDialogOpen] = useState(false);
+  const [comparisonDialogOpen, setComparisonDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<WithId<Expense> | null>(null);
+  const [editingScenario, setEditingScenario] = useState<WithId<BudgetScenario> | null>(null);
   const [deleteExpenseId, setDeleteExpenseId] = useState<string | null>(null);
+  const [deleteScenarioId, setDeleteScenarioId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [pageView, setPageView] = useState<"scenarios" | "details">("scenarios");
+  const [selectedScenario, setSelectedScenario] = useState<WithId<BudgetScenario> | null>(null);
+  const [currency, setCurrency] = useState<string>("PLN");
 
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -34,18 +57,47 @@ export default function KosztorysPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   useEffect(() => {
-    loadExpenses();
+    loadData();
   }, []);
 
-  const loadExpenses = async () => {
+  const loadData = async () => {
     try {
       setLoading(true);
-      const allExpenses = await listExpenses();
-      setExpenses(allExpenses);
+      // Ensure project exists and get currency
+      const project = await ensureMainProject();
+      setCurrency(project.currency || "PLN");
+
+      // Load scenarios
+      const allScenarios = await listScenarios();
+      setScenarios(allScenarios);
+
+      // Get active scenario (for dashboard)
+      const active = await getActiveScenario();
+      setActiveScenario(active);
+
+      // If we're in details view and have a selected scenario, load its expenses
+      if (pageView === "details" && selectedScenario) {
+        const scenarioExpenses = await listExpenses(selectedScenario.id);
+        setExpenses(scenarioExpenses);
+      } else {
+        setExpenses([]);
+      }
     } catch (error) {
-      console.error("Błąd podczas ładowania wydatków:", error);
+      console.error("Błąd podczas ładowania danych:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadExpenses = async (scenarioId?: string) => {
+    try {
+      const scenarioToUse = scenarioId || activeScenario?.id;
+      if (scenarioToUse) {
+        const scenarioExpenses = await listExpenses(scenarioToUse);
+        setExpenses(scenarioExpenses);
+      }
+    } catch (error) {
+      console.error("Błąd podczas ładowania wydatków:", error);
     }
   };
 
@@ -91,6 +143,111 @@ export default function KosztorysPage() {
       throw error;
     }
   };
+
+  const handleCreateScenario = async (data: Omit<BudgetScenario, "createdAt" | "updatedAt">) => {
+    try {
+      await createScenario(data);
+      await loadData();
+      setScenarioDialogOpen(false);
+      setEditingScenario(null);
+    } catch (error) {
+      console.error("Błąd podczas tworzenia scenariusza:", error);
+      throw error;
+    }
+  };
+
+  const handleUpdateScenario = async (data: Omit<BudgetScenario, "createdAt" | "updatedAt">) => {
+    if (!editingScenario) return;
+    try {
+      await updateScenario(editingScenario.id, data);
+      await loadData();
+      setEditingScenario(null);
+    } catch (error) {
+      console.error("Błąd podczas aktualizacji scenariusza:", error);
+      throw error;
+    }
+  };
+
+  const handleScenarioClick = async (scenarioId: string) => {
+    const scenario = scenarios.find((s) => s.id === scenarioId);
+    if (scenario) {
+      setSelectedScenario(scenario);
+      setPageView("details");
+      await loadExpenses(scenarioId);
+    }
+  };
+
+  const handleBackToScenarios = () => {
+    setPageView("scenarios");
+    setSelectedScenario(null);
+    setExpenses([]);
+  };
+
+  const handleSetActiveScenario = async (scenarioId: string) => {
+    try {
+      await updateScenario(scenarioId, { isActive: true });
+      await loadData();
+    } catch (error) {
+      console.error("Błąd podczas ustawiania aktywnego scenariusza:", error);
+    }
+  };
+
+  const handleCloneScenario = async (scenarioId: string) => {
+    try {
+      const scenario = scenarios.find((s) => s.id === scenarioId);
+      if (!scenario) return;
+
+      const newName = `${scenario.name} (kopia)`;
+      await cloneScenario(scenarioId, newName);
+      await loadData();
+    } catch (error) {
+      console.error("Błąd podczas klonowania scenariusza:", error);
+      alert(`Błąd podczas klonowania scenariusza: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  const handleDeleteScenario = async () => {
+    if (!deleteScenarioId) return;
+    try {
+      await deleteScenario(deleteScenarioId);
+      // If we deleted the selected scenario, go back to list
+      if (selectedScenario?.id === deleteScenarioId) {
+        handleBackToScenarios();
+      }
+      await loadData();
+      setDeleteScenarioId(null);
+    } catch (error) {
+      console.error("Błąd podczas usuwania scenariusza:", error);
+    }
+  };
+
+  const [allExpenses, setAllExpenses] = useState<WithId<Expense>[]>([]);
+
+  // Load all expenses for all scenarios (for stats in ScenarioList)
+  useEffect(() => {
+    const loadAllExpenses = async () => {
+      try {
+        const expenses = await listExpenses();
+        setAllExpenses(expenses);
+      } catch (error) {
+        console.error("Błąd podczas ładowania wszystkich wydatków:", error);
+      }
+    };
+    if (pageView === "scenarios") {
+      loadAllExpenses();
+    }
+  }, [pageView, scenarios]);
+
+  const expensesByScenario = useMemo(() => {
+    const result: Record<string, WithId<Expense>[]> = {};
+    allExpenses.forEach((expense) => {
+      if (!result[expense.scenarioId]) {
+        result[expense.scenarioId] = [];
+      }
+      result[expense.scenarioId].push(expense);
+    });
+    return result;
+  }, [allExpenses]);
 
   const handleUpdateExpense = async (data: Omit<Expense, "createdAt" | "updatedAt">) => {
     if (!editingExpense) return;
@@ -205,12 +362,78 @@ export default function KosztorysPage() {
         </div>
       </div>
 
-      {/* Expense Statistics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {pageView === "scenarios" ? (
+        <ScenarioList
+          scenarios={scenarios}
+          expensesByScenario={expensesByScenario}
+          currency={currency}
+          onScenarioClick={handleScenarioClick}
+          onAddScenario={() => {
+            setEditingScenario(null);
+            setScenarioDialogOpen(true);
+          }}
+          onEditScenario={(scenario) => {
+            setEditingScenario(scenario);
+            setScenarioDialogOpen(true);
+          }}
+          onDeleteScenario={setDeleteScenarioId}
+          onCloneScenario={handleCloneScenario}
+          onSetActive={handleSetActiveScenario}
+        />
+      ) : (
+        <>
+          {/* Back Button */}
+          <Button
+            variant="ghost"
+            onClick={handleBackToScenarios}
+            className="mb-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Wróć do listy scenariuszy
+          </Button>
+
+          {/* Selected Scenario Info */}
+          {selectedScenario && (
+            <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 mb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+                    {selectedScenario.name}
+                    {selectedScenario.isActive && (
+                      <span className="ml-2 text-xs bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 px-2 py-1 rounded-full">
+                        Aktywny
+                      </span>
+                    )}
+                  </h2>
+                  {selectedScenario.description && (
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                      {selectedScenario.description}
+                    </p>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditingScenario(selectedScenario);
+                      setScenarioDialogOpen(true);
+                    }}
+                  >
+                    Edytuj scenariusz
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Expense Statistics */}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-xl shadow-lg p-4 flex items-center justify-between">
           <div>
             <p className="text-sm opacity-90">Całkowity budżet</p>
-            <p className="text-2xl font-bold">{totalAmount.toFixed(2)} PLN</p>
+            <p className="text-2xl font-bold">{totalAmount.toFixed(2)} {currency}</p>
             <p className="text-xs opacity-75 mt-1">{totalExpenses} wydatków</p>
           </div>
           <Wallet className="w-10 h-10 opacity-80" />
@@ -218,7 +441,7 @@ export default function KosztorysPage() {
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <div>
             <p className="text-sm text-slate-500 dark:text-slate-400">Zaplanowane</p>
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{plannedAmount.toFixed(2)} PLN</p>
+            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{plannedAmount.toFixed(2)} {currency}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{plannedCount} wydatków</p>
           </div>
           <Clock className="w-8 h-8 text-blue-400 dark:text-blue-600" />
@@ -226,7 +449,7 @@ export default function KosztorysPage() {
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <div>
             <p className="text-sm text-slate-500 dark:text-slate-400">Zadatek</p>
-            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{depositAmount.toFixed(2)} PLN</p>
+            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{depositAmount.toFixed(2)} {currency}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{depositCount} wydatków</p>
           </div>
           <Wallet className="w-8 h-8 text-amber-400 dark:text-amber-600" />
@@ -234,7 +457,7 @@ export default function KosztorysPage() {
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <div>
             <p className="text-sm text-slate-500 dark:text-slate-400">Opłacone</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{paidAmount.toFixed(2)} PLN</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{paidAmount.toFixed(2)} {currency}</p>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{paidCount} wydatków</p>
           </div>
           <CheckCircle2 className="w-8 h-8 text-green-400 dark:text-green-600" />
@@ -286,6 +509,8 @@ export default function KosztorysPage() {
           onDelete={setDeleteExpenseId}
         />
       )}
+        </>
+      )}
 
       <ExpenseDialog
         open={dialogOpen}
@@ -296,8 +521,65 @@ export default function KosztorysPage() {
           }
         }}
         expense={editingExpense}
+        scenarios={scenarios.map((s) => ({ id: s.id, name: s.name }))}
+        activeScenarioId={selectedScenario?.id || activeScenario?.id || ""}
         onSubmit={handleDialogSubmit}
       />
+
+      <ScenarioDialog
+        open={scenarioDialogOpen}
+        onOpenChange={(open) => {
+          setScenarioDialogOpen(open);
+          if (!open) {
+            setEditingScenario(null);
+          }
+        }}
+        scenario={editingScenario}
+        hasOtherScenarios={scenarios.length > 0}
+        onSubmit={async (data) => {
+          if (editingScenario) {
+            await handleUpdateScenario(data);
+          } else {
+            await handleCreateScenario(data);
+          }
+        }}
+      />
+
+      <ScenarioComparison
+        open={comparisonDialogOpen}
+        onOpenChange={setComparisonDialogOpen}
+        scenarios={scenarios}
+        expensesByScenario={expensesByScenario}
+        currency={currency}
+        onSetActive={handleSetActiveScenario}
+      />
+
+      <AlertDialog
+        open={deleteScenarioId !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteScenarioId(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Usunąć scenariusz?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tej operacji nie można cofnąć. Wszystkie wydatki w tym scenariuszu również zostaną usunięte.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteScenarioId(null)}>
+              Anuluj
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteScenario}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Usuń
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog
         open={deleteExpenseId !== null}

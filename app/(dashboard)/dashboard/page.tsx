@@ -11,6 +11,7 @@ import { listExpenses } from "@/lib/db/expenses";
 import { listVendors } from "@/lib/db/vendors";
 import { listTimelineEvents } from "@/lib/db/timeline";
 import { listNotes } from "@/lib/db/notes";
+import { getActiveScenario } from "@/lib/db/scenarios";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 
 const COLORS = {
@@ -67,6 +68,9 @@ export default function DashboardPage() {
           }, 15000);
         });
 
+        // Get active scenario first
+        const activeScenario = await getActiveScenario();
+        
         // Load all data in parallel
         const [
           projectData,
@@ -81,7 +85,7 @@ export default function DashboardPage() {
             ensureMainProject(),
             listTasks(),
             listGuests(),
-            listExpenses(),
+            activeScenario ? listExpenses(activeScenario.id) : listExpenses(),
             listVendors(),
             listTimelineEvents(),
             listNotes(),

@@ -8,6 +8,7 @@ import {
   deleteDoc,
   query,
   orderBy,
+  where,
   serverTimestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -29,17 +30,28 @@ function docToExpense(docId: string, data: any): WithId<Expense> {
 
 /**
  * Lists all expenses ordered by createdAt descending (newest first)
+ * Optionally filters by scenarioId
+ * Note: We filter in code when scenarioId is provided to avoid requiring a composite index
  */
-export async function listExpenses(): Promise<WithId<Expense>[]> {
+export async function listExpenses(scenarioId?: string): Promise<WithId<Expense>[]> {
   if (!db) {
     console.error("listExpenses: Firestore DB is not initialized.");
     throw new Error("Firestore DB is not available.");
   }
   const expensesRef = collection(db, getCollectionPath());
+  
+  // Always get all expenses and filter/sort in code to avoid needing composite indexes
   const q = query(expensesRef, orderBy("createdAt", "desc"));
   const querySnapshot = await getDocs(q);
 
-  return querySnapshot.docs.map((doc) => docToExpense(doc.id, doc.data()));
+  let expenses = querySnapshot.docs.map((doc) => docToExpense(doc.id, doc.data()));
+
+  // Filter by scenarioId if provided
+  if (scenarioId) {
+    expenses = expenses.filter((e) => e.scenarioId === scenarioId);
+  }
+
+  return expenses;
 }
 
 /**

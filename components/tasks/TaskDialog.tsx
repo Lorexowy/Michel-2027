@@ -99,14 +99,18 @@ export default function TaskDialog({
       // Firestore nie akceptuje undefined - musimy usunąć te pola lub ustawić null
       const taskData: Omit<Task, "createdAt" | "updatedAt"> = {
         title: values.title,
-        description: values.description || undefined,
         status: values.status,
         priority: values.priority,
         assignedTo: "both", // Domyślna wartość
-        dueDate: values.dueDate
-          ? Timestamp.fromDate(new Date(values.dueDate))
-          : null,
       };
+
+      // Dodaj opcjonalne pola tylko jeśli mają wartość
+      if (values.description && values.description.trim()) {
+        taskData.description = values.description;
+      }
+      if (values.dueDate) {
+        taskData.dueDate = Timestamp.fromDate(new Date(values.dueDate));
+      }
 
       console.log("TaskDialog: Wywołuję onSubmit z danymi:", taskData);
       await onSubmit(taskData);

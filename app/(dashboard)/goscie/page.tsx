@@ -134,7 +134,13 @@ export default function GosciePage() {
   const notSentGuests = filteredGuests.filter(g => g.rsvp === "not_sent").length;
   const declinedGuests = filteredGuests.filter(g => g.rsvp === "no").length;
   const brideSide = filteredGuests.filter(g => g.side === "bride").length;
+  const brideSideCount = filteredGuests
+    .filter(g => g.side === "bride")
+    .reduce((sum, g) => sum + (g.hasCompanion ? 2 : 1), 0);
   const groomSide = filteredGuests.filter(g => g.side === "groom").length;
+  const groomSideCount = filteredGuests
+    .filter(g => g.side === "groom")
+    .reduce((sum, g) => sum + (g.hasCompanion ? 2 : 1), 0);
 
   if (loading) {
     return (
@@ -241,19 +247,25 @@ export default function GosciePage() {
 
       {/* Side Statistics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-950/20 dark:to-pink-900/10 rounded-xl shadow-sm p-4 border border-pink-200 dark:border-pink-900/30 flex items-center justify-between">
-          <div>
+        <div className="bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-950/20 dark:to-pink-900/10 rounded-xl shadow-sm p-4 border border-pink-200 dark:border-pink-900/30">
+          <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-pink-600 dark:text-pink-400 font-medium">Strona Panny Młodej</p>
-            <p className="text-2xl font-bold text-pink-700 dark:text-pink-300">{brideSide}</p>
+            <Heart className="w-8 h-8 text-pink-400 dark:text-pink-600" />
           </div>
-          <Heart className="w-8 h-8 text-pink-400 dark:text-pink-600" />
+          <p className="text-2xl font-bold text-pink-700 dark:text-pink-300 mb-1">{brideSide}</p>
+          <p className="text-xs text-pink-600 dark:text-pink-400">
+            Z osobami towarzyszącymi: <span className="font-semibold">{brideSideCount}</span>
+          </p>
         </div>
-        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/10 rounded-xl shadow-sm p-4 border border-blue-200 dark:border-blue-900/30 flex items-center justify-between">
-          <div>
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/10 rounded-xl shadow-sm p-4 border border-blue-200 dark:border-blue-900/30">
+          <div className="flex items-center justify-between mb-2">
             <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Strona Pana Młodego</p>
-            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{groomSide}</p>
+            <Heart className="w-8 h-8 text-blue-400 dark:text-blue-600" />
           </div>
-          <Heart className="w-8 h-8 text-blue-400 dark:text-blue-600" />
+          <p className="text-2xl font-bold text-blue-700 dark:text-blue-300 mb-1">{groomSide}</p>
+          <p className="text-xs text-blue-600 dark:text-blue-400">
+            Z osobami towarzyszącymi: <span className="font-semibold">{groomSideCount}</span>
+          </p>
         </div>
       </div>
 
