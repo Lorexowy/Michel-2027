@@ -37,7 +37,16 @@ const expenseSchema = z.object({
   title: z.string().min(1, "Tytuł jest wymagany"),
   description: z.string().optional().nullable(),
   category: z.string().min(1, "Kategoria jest wymagana"),
-  amount: z.number().min(0, "Kwota musi być większa lub równa 0"),
+  amount: z.union([
+    z.number().min(0, "Kwota musi być większa lub równa 0"),
+    z.string().transform((val) => {
+      const num = parseFloat(val);
+      if (isNaN(num) || num < 0) {
+        throw new Error("Kwota musi być większa lub równa 0");
+      }
+      return num;
+    }),
+  ]),
   status: z.enum(["planned", "deposit", "paid"]),
   scenarioId: z.string().min(1, "Scenariusz jest wymagany"),
   dueDate: z.string().optional().nullable(),
@@ -68,7 +77,7 @@ export default function ExpenseDialog({
       title: "",
       description: null,
       category: "",
-      amount: 0,
+      amount: "" as any, // Empty string, will be converted to number
       status: "planned",
       scenarioId: activeScenarioId,
       dueDate: null,
@@ -93,7 +102,7 @@ export default function ExpenseDialog({
         title: "",
         description: null,
         category: "",
-        amount: 0,
+        amount: "" as any,
         status: "planned",
         scenarioId: activeScenarioId,
         dueDate: null,
@@ -107,10 +116,13 @@ export default function ExpenseDialog({
 
   const handleSubmit = async (values: ExpenseFormValues) => {
     try {
+      // Ensure amount is a number
+      const amount = typeof values.amount === "string" ? parseFloat(values.amount) || 0 : values.amount;
+      
       const expenseData: Omit<Expense, "createdAt" | "updatedAt"> = {
         title: values.title,
         category: values.category,
-        amount: values.amount,
+        amount: amount,
         status: values.status,
         scenarioId: values.scenarioId,
       };
@@ -186,8 +198,13 @@ export default function ExpenseDialog({
                         step="0.01"
                         min="0"
                         placeholder="0.00"
-                        {...field}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        value={typeof field.value === "number" ? field.value : field.value || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          // Keep as string if empty, convert to number if has value
+                          field.onChange(value === "" ? "" : value);
+                        }}
+                        onBlur={field.onBlur}
                       />
                     </FormControl>
                     <FormMessage />

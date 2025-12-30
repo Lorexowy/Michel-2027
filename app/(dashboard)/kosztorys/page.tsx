@@ -91,9 +91,13 @@ export default function KosztorysPage() {
 
   const loadExpenses = async (scenarioId?: string) => {
     try {
-      const scenarioToUse = scenarioId || activeScenario?.id;
+      const scenarioToUse = scenarioId || selectedScenario?.id;
       if (scenarioToUse) {
         const scenarioExpenses = await listExpenses(scenarioToUse);
+        setExpenses(scenarioExpenses);
+      } else if (pageView === "details" && selectedScenario) {
+        // If we're in details view but no scenarioId provided, use selectedScenario
+        const scenarioExpenses = await listExpenses(selectedScenario.id);
         setExpenses(scenarioExpenses);
       }
     } catch (error) {
@@ -137,7 +141,12 @@ export default function KosztorysPage() {
   const handleCreateExpense = async (data: Omit<Expense, "createdAt" | "updatedAt">) => {
     try {
       await createExpense(data);
-      await loadExpenses();
+      // Reload expenses for the current scenario
+      if (selectedScenario) {
+        await loadExpenses(selectedScenario.id);
+      } else {
+        await loadExpenses();
+      }
     } catch (error) {
       console.error("Błąd podczas tworzenia wydatku:", error);
       throw error;
@@ -253,7 +262,12 @@ export default function KosztorysPage() {
     if (!editingExpense) return;
     try {
       await updateExpense(editingExpense.id, data);
-      await loadExpenses();
+      // Reload expenses for the current scenario
+      if (selectedScenario) {
+        await loadExpenses(selectedScenario.id);
+      } else {
+        await loadExpenses();
+      }
       setEditingExpense(null);
     } catch (error) {
       console.error("Błąd podczas aktualizacji wydatku:", error);
@@ -263,9 +277,18 @@ export default function KosztorysPage() {
 
   const handleDeleteExpense = async () => {
     if (!deleteExpenseId) return;
-    await deleteExpense(deleteExpenseId);
-    await loadExpenses();
-    setDeleteExpenseId(null);
+    try {
+      await deleteExpense(deleteExpenseId);
+      // Reload expenses for the current scenario
+      if (selectedScenario) {
+        await loadExpenses(selectedScenario.id);
+      } else {
+        await loadExpenses();
+      }
+      setDeleteExpenseId(null);
+    } catch (error) {
+      console.error("Błąd podczas usuwania wydatku:", error);
+    }
   };
 
   const handleEdit = (expense: WithId<Expense>) => {
