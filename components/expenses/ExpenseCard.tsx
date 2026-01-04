@@ -95,9 +95,23 @@ export default function ExpenseCard({
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
-            <Wallet className="h-5 w-5 text-slate-500 dark:text-slate-400" />
-            <span>{expense.amount.toFixed(2)} PLN</span>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+              <Wallet className="h-5 w-5 text-slate-500 dark:text-slate-400" />
+              <span>{expense.amount.toFixed(2)} PLN</span>
+            </div>
+            {expense.paidAmount !== undefined && expense.paidAmount > 0 && (
+              <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 ml-7">
+                <span className="text-amber-600 dark:text-amber-400 font-medium">
+                  Zapłacono: {expense.paidAmount.toFixed(2)} PLN
+                </span>
+                {expense.paidAmount < expense.amount && (
+                  <span className="text-slate-500 dark:text-slate-500">
+                    (pozostało: {(expense.amount - expense.paidAmount).toFixed(2)} PLN)
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

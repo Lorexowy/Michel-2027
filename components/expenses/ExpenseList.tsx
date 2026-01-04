@@ -98,9 +98,23 @@ export default function ExpenseList({
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-100">
-                      <Wallet className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                      <span>{expense.amount.toFixed(2)} PLN</span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2 font-semibold text-slate-900 dark:text-slate-100">
+                        <Wallet className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                        <span>{expense.amount.toFixed(2)} PLN</span>
+                      </div>
+                      {expense.paidAmount !== undefined && expense.paidAmount > 0 && (
+                        <div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 ml-6">
+                          <span className="text-amber-600 dark:text-amber-400 font-medium">
+                            Zapłacono: {expense.paidAmount.toFixed(2)} PLN
+                          </span>
+                          {expense.paidAmount < expense.amount && (
+                            <span className="text-slate-500 dark:text-slate-500">
+                              (pozostało: {(expense.amount - expense.paidAmount).toFixed(2)} PLN)
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </td>
                   <td className="px-4 py-3">

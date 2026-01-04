@@ -314,6 +314,8 @@ export default function KosztorysPage() {
   // Statistics
   const totalExpenses = filteredExpenses.length;
   const totalAmount = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+  const totalPaidAmount = filteredExpenses.reduce((sum, e) => sum + (e.paidAmount || 0), 0);
+  const remainingAmount = totalAmount - totalPaidAmount;
   const plannedAmount = filteredExpenses.filter(e => e.status === "planned").reduce((sum, e) => sum + e.amount, 0);
   const depositAmount = filteredExpenses.filter(e => e.status === "deposit").reduce((sum, e) => sum + e.amount, 0);
   const paidAmount = filteredExpenses.filter(e => e.status === "paid").reduce((sum, e) => sum + e.amount, 0);
@@ -471,17 +473,21 @@ export default function KosztorysPage() {
         </div>
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <div>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Zadatek</p>
-            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{depositAmount.toFixed(2)} {currency}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{depositCount} wydatków</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Zapłacono</p>
+            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{totalPaidAmount.toFixed(2)} {currency}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              {filteredExpenses.filter(e => (e.paidAmount || 0) > 0).length} wydatków z płatnością
+            </p>
           </div>
           <Wallet className="w-8 h-8 text-amber-400 dark:text-amber-600" />
         </div>
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-4 border border-slate-200 dark:border-slate-700 flex items-center justify-between">
           <div>
-            <p className="text-sm text-slate-500 dark:text-slate-400">Opłacone</p>
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{paidAmount.toFixed(2)} {currency}</p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{paidCount} wydatków</p>
+            <p className="text-sm text-slate-500 dark:text-slate-400">Pozostało</p>
+            <p className="text-2xl font-bold text-green-600 dark:text-green-400">{remainingAmount.toFixed(2)} {currency}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              {totalPaidAmount > 0 ? `${((totalPaidAmount / totalAmount) * 100).toFixed(1)}% zapłacono` : 'Do zapłacenia'}
+            </p>
           </div>
           <CheckCircle2 className="w-8 h-8 text-green-400 dark:text-green-600" />
         </div>

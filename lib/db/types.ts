@@ -65,6 +65,7 @@ export interface Expense {
   vendorId?: string;
   dueDate?: Timestamp | null;
   paidAt?: Timestamp | null;
+  paidAmount?: number; // Kwota już zapłacona (zadatki, częściowe płatności)
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }

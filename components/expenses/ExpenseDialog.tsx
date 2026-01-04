@@ -50,6 +50,24 @@ const expenseSchema = z.object({
   status: z.enum(["planned", "deposit", "paid"]),
   scenarioId: z.string().min(1, "Scenariusz jest wymagany"),
   dueDate: z.string().optional().nullable(),
+  paidAmount: z.union([
+    z.number().min(0, "Zapłacona kwota musi być większa lub równa 0"),
+    z.string().transform((val) => {
+      if (val === "" || val === null || val === undefined) return undefined;
+      const num = parseFloat(val);
+      if (isNaN(num) || num < 0) {
+        throw new Error("Zapłacona kwota musi być większa lub równa 0");
+      }
+      return num;
+    }),
+  ]).optional().nullable(),
+}).refine((data) => {
+  const amount = typeof data.amount === "number" ? data.amount : parseFloat(data.amount as string) || 0;
+  const paidAmount = typeof data.paidAmount === "number" ? data.paidAmount : (data.paidAmount ? parseFloat(data.paidAmount as string) : 0);
+  return paidAmount <= amount;
+}, {
+  message: "Zapłacona kwota nie może być większa od całkowitej kwoty",
+  path: ["paidAmount"],
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -81,6 +99,7 @@ export default function ExpenseDialog({
       status: "planned",
       scenarioId: activeScenarioId,
       dueDate: null,
+      paidAmount: null,
     },
   });
 
@@ -96,6 +115,7 @@ export default function ExpenseDialog({
         dueDate: expense.dueDate
           ? formatDateForInput(expense.dueDate.toDate())
           : null,
+        paidAmount: expense.paidAmount ?? null,
       });
     } else {
       form.reset({
@@ -106,6 +126,7 @@ export default function ExpenseDialog({
         status: "planned",
         scenarioId: activeScenarioId,
         dueDate: null,
+        paidAmount: null,
       });
     }
   }, [expense, open, activeScenarioId, form]);
@@ -118,6 +139,9 @@ export default function ExpenseDialog({
     try {
       // Ensure amount is a number
       const amount = typeof values.amount === "string" ? parseFloat(values.amount) || 0 : values.amount;
+      const paidAmount = values.paidAmount 
+        ? (typeof values.paidAmount === "string" ? parseFloat(values.paidAmount) || undefined : values.paidAmount)
+        : undefined;
       
       const expenseData: Omit<Expense, "createdAt" | "updatedAt"> = {
         title: values.title,
@@ -132,6 +156,9 @@ export default function ExpenseDialog({
       }
       if (values.dueDate) {
         expenseData.dueDate = Timestamp.fromDate(new Date(values.dueDate));
+      }
+      if (paidAmount !== undefined && paidAmount !== null) {
+        expenseData.paidAmount = paidAmount;
       }
 
       await onSubmit(expenseData);
@@ -191,7 +218,7 @@ export default function ExpenseDialog({
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Kwota (PLN) *</FormLabel>
+                    <FormLabel>Kwota całkowita (PLN) *</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -212,6 +239,35 @@ export default function ExpenseDialog({
                 )}
               />
             </div>
+
+            <FormField
+              control={form.control}
+              name="paidAmount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Zapłacona kwota (PLN) - zadatki, częściowe płatności</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00 (opcjonalnie)"
+                      value={typeof field.value === "number" ? field.value : field.value || ""}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Keep as string if empty, convert to number if has value
+                        field.onChange(value === "" ? null : value);
+                      }}
+                      onBlur={field.onBlur}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Wprowadź kwotę już zapłaconą (np. zadatek 3000 PLN). Pozostała kwota zostanie obliczona automatycznie.
+                  </p>
+                </FormItem>
+              )}
+            />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField
