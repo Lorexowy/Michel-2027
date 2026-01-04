@@ -264,6 +264,33 @@ export default function DashboardPage() {
     return null;
   };
 
+  const ExpensesBarTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3 shadow-lg">
+          {payload.map((entry: any, index: number) => {
+            const labelMap: Record<string, string> = {
+              'całkowita': 'Całkowita',
+              'zapłacono': 'Zapłacono',
+              'pozostało': 'Pozostało',
+            };
+            return (
+              <div key={index} className="mb-1 last:mb-0">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                  {labelMap[entry.dataKey] || entry.dataKey}
+                </p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {`${Number(entry.value).toFixed(2)} ${project?.currency || "PLN"}`}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+    return null;
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -397,21 +424,7 @@ export default function DashboardPage() {
                       height={60}
                     />
                     <YAxis tick={{ fill: 'rgba(255,255,255,0.8)', fontSize: 10 }} />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'rgba(255,255,255,0.95)', 
-                        border: 'none', 
-                        borderRadius: '8px',
-                        color: '#1e293b'
-                      }}
-                      formatter={(value: any, name: string | number) => {
-                        const nameStr = String(name);
-                        if (nameStr === 'całkowita') return [`${Number(value).toFixed(2)} ${project?.currency || "PLN"}`, 'Całkowita'];
-                        if (nameStr === 'zapłacono') return [`${Number(value).toFixed(2)} ${project?.currency || "PLN"}`, 'Zapłacono'];
-                        if (nameStr === 'pozostało') return [`${Number(value).toFixed(2)} ${project?.currency || "PLN"}`, 'Pozostało'];
-                        return `${Number(value).toFixed(2)} ${project?.currency || "PLN"}`;
-                      }}
-                    />
+                    <Tooltip content={<ExpensesBarTooltip />} />
                     <Bar dataKey="całkowita" fill="#10b981" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="zapłacono" fill="#fbbf24" radius={[4, 4, 0, 0]} />
                   </BarChart>
