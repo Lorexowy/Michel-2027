@@ -12,7 +12,7 @@ import { listVendors } from "@/lib/db/vendors";
 import { listTimelineEvents } from "@/lib/db/timeline";
 import { listNotes } from "@/lib/db/notes";
 import { getActiveScenario } from "@/lib/db/scenarios";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
 const COLORS = {
   tasks: {
@@ -47,7 +47,15 @@ export default function DashboardPage() {
   const [stats, setStats] = useState({
     tasks: { total: 0, todo: 0, doing: 0, done: 0 },
     guests: { total: 0, totalCount: 0, confirmed: 0, confirmedCount: 0, pending: 0, notSent: 0, declined: 0 },
-    expenses: { total: 0, planned: 0, deposit: 0, paid: 0 },
+    expenses: { 
+      total: 0, 
+      paidAmount: 0, 
+      remainingAmount: 0,
+      planned: 0, 
+      deposit: 0, 
+      paid: 0,
+      byCategory: [] as Array<{ category: string; total: number; paid: number; remaining: number }>,
+    },
     vendors: { total: 0, booked: 0, considering: 0, rejected: 0 },
     events: { total: 0, upcoming: 0, past: 0 },
     notes: { total: 0, withTags: 0 },
@@ -125,11 +133,35 @@ export default function DashboardPage() {
           declined: guests.filter(g => g.rsvp === "no").length,
         };
 
+        // Calculate expenses stats with paidAmount
+        const totalAmount = expenses.reduce((sum, e) => sum + e.amount, 0);
+        const totalPaidAmount = expenses.reduce((sum, e) => sum + (e.paidAmount || 0), 0);
+        const remainingAmount = totalAmount - totalPaidAmount;
+        
+        // Group expenses by category
+        const expensesByCategory = expenses.reduce((acc, e) => {
+          if (!acc[e.category]) {
+            acc[e.category] = { total: 0, paid: 0, remaining: 0 };
+          }
+          acc[e.category].total += e.amount;
+          acc[e.category].paid += e.paidAmount || 0;
+          acc[e.category].remaining += e.amount - (e.paidAmount || 0);
+          return acc;
+        }, {} as Record<string, { total: number; paid: number; remaining: number }>);
+        
+        const expensesByCategoryArray = Object.entries(expensesByCategory)
+          .map(([category, data]) => ({ category, ...data }))
+          .sort((a, b) => b.total - a.total)
+          .slice(0, 10); // Top 10 categories
+        
         const expensesStats = {
-          total: expenses.reduce((sum, e) => sum + e.amount, 0),
+          total: totalAmount,
+          paidAmount: totalPaidAmount,
+          remainingAmount: remainingAmount,
           planned: expenses.filter(e => e.status === "planned").reduce((sum, e) => sum + e.amount, 0),
           deposit: expenses.filter(e => e.status === "deposit").reduce((sum, e) => sum + e.amount, 0),
           paid: expenses.filter(e => e.status === "paid").reduce((sum, e) => sum + e.amount, 0),
+          byCategory: expensesByCategoryArray,
         };
 
         const vendorsStats = {
@@ -196,10 +228,17 @@ export default function DashboardPage() {
   ].filter(item => item.value > 0);
 
   const expensesChartData = [
-    { name: "Zaplanowane", value: stats.expenses.planned },
-    { name: "Zadatek", value: stats.expenses.deposit },
-    { name: "Opłacone", value: stats.expenses.paid },
+    { name: "Zapłacono", value: stats.expenses.paidAmount },
+    { name: "Pozostało", value: Math.max(0, stats.expenses.remainingAmount) },
   ].filter(item => item.value > 0);
+  
+  const expensesByCategoryChartData = stats.expenses.byCategory.map(cat => ({
+    name: cat.category.length > 15 ? cat.category.substring(0, 15) + "..." : cat.category,
+    fullName: cat.category,
+    całkowita: cat.total,
+    zapłacono: cat.paid,
+    pozostało: cat.remaining,
+  }));
 
   const vendorsChartData = [
     { name: "Zarezerwowani", value: stats.vendors.booked },
@@ -260,12 +299,12 @@ export default function DashboardPage() {
 
       {/* Bento Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-        {/* Expenses Card with Pie Chart */}
+        {/* Expenses Card with Charts */}
         <Link
           href="/kosztorys"
-          className="md:col-span-2 lg:col-span-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all hover:scale-[1.01] group"
+          className="md:col-span-2 lg:col-span-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl transition-all hover:scale-[1.01] group"
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 rounded-lg">
                 <Wallet className="w-6 h-6" />
@@ -275,30 +314,41 @@ export default function DashboardPage() {
                 <p className="text-sm opacity-90">Podsumowanie wydatków</p>
               </div>
             </div>
-            <span className="text-xs font-medium opacity-90">Kliknij, aby zobaczyć szczegóły</span>
+            <span className="text-xs font-medium opacity-90 hidden md:block">Kliknij, aby zobaczyć szczegóły</span>
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
-            <div>
-              <div className="text-4xl font-bold mb-2">
-                {stats.expenses.total.toFixed(2)} {project?.currency || "PLN"}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            {/* Main Stats */}
+            <div className="space-y-4">
+              <div>
+                <div className="text-3xl font-bold mb-1">
+                  {stats.expenses.total.toFixed(2)} {project?.currency || "PLN"}
+                </div>
+                <div className="text-sm opacity-90">Całkowity budżet</div>
               </div>
-              <div className="space-y-2 text-sm opacity-90">
-                <div className="flex items-center justify-between">
-                  <span>Opłacone:</span>
-                  <span className="font-semibold">{stats.expenses.paid.toFixed(2)} {project?.currency || "PLN"}</span>
+              <div className="space-y-3">
+                <div className="bg-white/10 rounded-lg p-3">
+                  <div className="text-xs opacity-80 mb-1">Zapłacono</div>
+                  <div className="text-xl font-bold">{stats.expenses.paidAmount.toFixed(2)} {project?.currency || "PLN"}</div>
+                  {stats.expenses.total > 0 && (
+                    <div className="text-xs opacity-75 mt-1">
+                      {((stats.expenses.paidAmount / stats.expenses.total) * 100).toFixed(1)}% budżetu
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span>Zadatek:</span>
-                  <span className="font-semibold">{stats.expenses.deposit.toFixed(2)} {project?.currency || "PLN"}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Zaplanowane:</span>
-                  <span className="font-semibold">{stats.expenses.planned.toFixed(2)} {project?.currency || "PLN"}</span>
+                <div className="bg-white/10 rounded-lg p-3">
+                  <div className="text-xs opacity-80 mb-1">Pozostało</div>
+                  <div className="text-xl font-bold">{Math.max(0, stats.expenses.remainingAmount).toFixed(2)} {project?.currency || "PLN"}</div>
+                  {stats.expenses.total > 0 && (
+                    <div className="text-xs opacity-75 mt-1">
+                      {((stats.expenses.remainingAmount / stats.expenses.total) * 100).toFixed(1)}% budżetu
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
             
+            {/* Progress Pie Chart */}
             {expensesChartData.length > 0 ? (
               <div className="h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -315,12 +365,11 @@ export default function DashboardPage() {
                     >
                       {expensesChartData.map((entry, index) => {
                         const colorMap: Record<string, string> = {
-                          "Opłacone": COLORS.expenses.paid,
-                          "Zadatek": COLORS.expenses.deposit,
-                          "Zaplanowane": COLORS.expenses.planned,
+                          "Zapłacono": "#10b981", // green
+                          "Pozostało": "#6b7280", // gray
                         };
                         return (
-                          <Cell key={`cell-${index}`} fill={colorMap[entry.name] || COLORS.expenses.planned} />
+                          <Cell key={`cell-${index}`} fill={colorMap[entry.name] || "#6b7280"} />
                         );
                       })}
                     </Pie>
@@ -333,7 +382,65 @@ export default function DashboardPage() {
                 <p>Brak danych do wyświetlenia</p>
               </div>
             )}
+            
+            {/* Bar Chart by Category */}
+            {expensesByCategoryChartData.length > 0 ? (
+              <div className="h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={expensesByCategoryChartData.slice(0, 5)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis 
+                      dataKey="name" 
+                      tick={{ fill: 'rgba(255,255,255,0.8)', fontSize: 10 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis tick={{ fill: 'rgba(255,255,255,0.8)', fontSize: 10 }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'rgba(255,255,255,0.95)', 
+                        border: 'none', 
+                        borderRadius: '8px',
+                        color: '#1e293b'
+                      }}
+                      formatter={(value: any, name: string | number) => {
+                        const nameStr = String(name);
+                        if (nameStr === 'całkowita') return [`${Number(value).toFixed(2)} ${project?.currency || "PLN"}`, 'Całkowita'];
+                        if (nameStr === 'zapłacono') return [`${Number(value).toFixed(2)} ${project?.currency || "PLN"}`, 'Zapłacono'];
+                        if (nameStr === 'pozostało') return [`${Number(value).toFixed(2)} ${project?.currency || "PLN"}`, 'Pozostało'];
+                        return `${Number(value).toFixed(2)} ${project?.currency || "PLN"}`;
+                      }}
+                    />
+                    <Bar dataKey="całkowita" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="zapłacono" fill="#fbbf24" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-[200px] text-white/60">
+                <p>Brak danych do wyświetlenia</p>
+              </div>
+            )}
           </div>
+          
+          {/* Progress Bar */}
+          {stats.expenses.total > 0 && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between text-sm mb-2 opacity-90">
+                <span>Postęp płatności</span>
+                <span className="font-semibold">
+                  {((stats.expenses.paidAmount / stats.expenses.total) * 100).toFixed(1)}%
+                </span>
+              </div>
+              <div className="h-3 bg-white/20 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-white rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min(100, (stats.expenses.paidAmount / stats.expenses.total) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
         </Link>
 
         {/* Tasks Card with Pie Chart */}
